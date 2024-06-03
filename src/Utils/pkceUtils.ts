@@ -1,4 +1,8 @@
 // utils/pkceUtils.ts
+
+import axios from 'axios';
+
+
 export async function generateCodeVerifier(): Promise<string> {
     const array = new Uint8Array(32);
     window.crypto.getRandomValues(array);
@@ -32,3 +36,26 @@ export async function generateCodeVerifier(): Promise<string> {
     }
     return state;
   } 
+
+
+  
+export async function getAccessToken(authorizationCode: string, codeVerifier: string, appId: string, secretKey: string) {
+  const url = 'https://oauth.zaloapp.com/v4/access_token';
+  const headers = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'secret_key': secretKey
+  };
+  const data = new URLSearchParams();
+  data.append('code', authorizationCode);
+  data.append('app_id', appId);
+  data.append('grant_type', 'authorization_code');
+  data.append('code_verifier', codeVerifier);
+
+  try {
+    const response = await axios.post(url, data, { headers });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching access token:', error);
+    throw error;
+  }
+}
