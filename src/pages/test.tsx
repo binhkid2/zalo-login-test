@@ -28,3 +28,4 @@ const TestPage: React.FC = () => {
 };
 
 export default TestPage;
+//https://oauth.zaloapp.com/v4/permission?app_id=4220696386833253137&redirect_uri=localhost:5173/&code_challenge=<CODE_CHALLENGE>&state=<STATE>
