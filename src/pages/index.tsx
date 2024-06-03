@@ -27,9 +27,9 @@ const navigate=useNavigate()
       <p><strong>State:</strong> {state}</p>
       <p><strong>Code Verifier:</strong> {codeVerifier}</p>
       <p><strong>Code Challenge:</strong> {codeChallenge}</p>
-      <p><strong>Code Challenge:</strong> https://oauth.zaloapp.com/v4/permission?app_id=4220696386833253137&redirect_uri=https://zalo-login-test.vercel.app/login/zalo&code_challenge=${codeChallenge}&state=${state}</p>
-      <button  className="bg-blue-500 px-5 py-2  rounded-3xl" onClick={()=>{navigate(`https://oauth.zaloapp.com/v4/permission?app_id=4220696386833253137&redirect_uri=https://zalo-login-test.vercel.app/login/zalo&code_challenge=${codeChallenge}&state=${state}`)}}>Login with Zalo </button>
-   
+      <p><strong>Login :</strong> https://oauth.zaloapp.com/v4/permission?app_id=4220696386833253137&redirect_uri=https://zalo-login-test.vercel.app/login/zalo&code_challenge={codeChallenge}&state={state}</p>
+      <button className="bg-blue-500 px-5 py-2  rounded-3xl" onClick={() => { window.location.href = `https://oauth.zaloapp.com/v4/permission?app_id=4220696386833253137&redirect_uri=https://zalo-login-test.vercel.app/login/zalo&code_challenge=${codeChallenge}&state=${state}` }}>Login with Zalo</button>
+
     </div>
   );
 };
