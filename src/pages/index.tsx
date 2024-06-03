@@ -1,7 +1,7 @@
 // components/PKCEComponent.tsx
 import React, { useState, useEffect } from 'react';
 import { generateCodeVerifier, generateCodeChallenge, generateState } from '../Utils/pkceUtils';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 
 const HomePage: React.FC = () => {
   const [codeVerifier, setCodeVerifier] = useState<string>('');
@@ -20,7 +20,7 @@ const HomePage: React.FC = () => {
 
     generatePKCE();
   }, []);
-const navigate=useNavigate()
+//const navigate=useNavigate()
   return (
     <div>
       <h1>PKCE Code Challenge Example</h1>
