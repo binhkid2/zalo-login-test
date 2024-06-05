@@ -1,121 +1,90 @@
-import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
-import { zaloAccessTokenAtom } from "../store";
-import {  generate_state_param } from "../Utils/crypto";//generate_pkce_codes
+import React, { useEffect } from "react";
+import { generate_pkce_codes, generate_state_param } from "../Utils/crypto";
 
-export default function HomePage() {
-  const [zaloAccessToken, setZaloAccessToken] = useAtom(zaloAccessTokenAtom);
-  const [isLogged, setIsLogged] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [userAvatar, setUserAvatar] = useState("");
-  const [userId, setUserId] = useState("");
-
+const IndexPage: React.FC = () => {
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (!zaloAccessToken) {
-          const state = generate_state_param(); // for CSRF prevention
-          // Generate the code verifier and code challenge
-        //  const codes = generate_pkce_codes();
-        //  const code_challenge = codes.challenge
-          // Get the current website URL
-          let currentUrl = window.location.origin;
-          // Remove any trailing slashes
-          currentUrl = currentUrl.replace(/\/+$/, "");
-          // Construct the redirect URI
-          const redirect_uri = `${currentUrl}/login/zalo`;
+    ///// Authentication Process /////
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    ) {
+      document.body.innerHTML = "<h1>Please use a domain.</h1>";
+    } else {
+      if (!localStorage.getItem("zalo_access_token")) {
+        const state = generate_state_param(); // for CSRF prevention
+        // Generate the code verifier and code challenge
+        const codes = generate_pkce_codes();
+        // Get the current website URL
+        let currentUrl = window.location.origin;
 
-          const auth_uri = `${
-            import.meta.env.VITE_ZALO_PERMISSION_URL
-          }?${new URLSearchParams({
-            app_id: import.meta.env.VITE_APP_ID,
-            redirect_uri: redirect_uri,
-          //  code_challenge: code_challenge,
-            state: state, // <- prevent CSRF
-          })}`;
-          console.log("auth_uri: ", auth_uri);
-          window.location.replace(auth_uri);
-        } else {
-          setIsLogged(true);
-          // Store the INITIAL access token in a JavaScript constant.
-          const initialToken = zaloAccessToken;
-          alert(initialToken);
-          const user_access_token = JSON.parse(initialToken).access_token;
+        // Remove any trailing slashes
+        currentUrl = currentUrl.replace(/\/+$/, "");
 
-          // Display information of user
-          const response = await fetch(
-            "https://graph.zalo.me/v2.0/me?fields=id,name,picture",
-            {
-              headers: {
-                access_token: user_access_token,
-              },
+        // Construct the redirect URI
+        const redirect_uri = `${currentUrl}/login/zalo`;
+        // Store the request state to be checked in auth.html
+        localStorage.setItem("zalo_auth_state", state);
+        // Store the code verifier to be used in auth.html
+        localStorage.setItem("zalo_code_verifier", codes.verifier);
+        const authUri = `${
+          import.meta.env.ZALO_PERMISSION_URL
+        }?${new URLSearchParams({
+          app_id: import.meta.env.APP_ID || "",
+          redirect_uri: redirect_uri,
+          code_challenge: codes.challenge,
+          state: state, // <- prevent CSRF
+        }).toString()}`;
+        window.location.replace(authUri);
+      } else {
+        // Store the INITIAL access token in a JavaScript constant.
+        const initialToken = localStorage.getItem("zalo_access_token");
+        alert(initialToken);
+        const userAccessToken = JSON.parse(initialToken || "").access_token;
+        document.getElementById("user_token")!.innerHTML =
+          "access_token = " + userAccessToken;
+
+        // Display information of user
+        fetch("https://graph.zalo.me/v2.0/me?fields=id,name,picture", {
+          headers: {
+            access_token: userAccessToken,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            let userInfo = "";
+            if (data.message.toLowerCase() === "success") {
+              userInfo = `<table style="border:none;border-top:1px solid black;">
+                                        <tr>
+                                            <td>id:</td>
+                                            <td>${data.id}<td>
+                                        </tr>
+                                        <tr>
+                                            <td>name:</td>
+                                            <td>${data.name}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>picture:</td>
+                                            <td><img src="${data.picture.data.url}" alt="avatar" width="120" height="120"></td>
+                                        </tr>
+                                    </table>`;
+            } else {
+              userInfo = "Cannot get user info";
             }
-          );
+            document.getElementById("user_info")!.innerHTML = userInfo;
+          });
 
-          if (!response.ok) {
-            throw new Error("Failed to fetch user data");
-          }
-
-          const data = await response.json();
-
-          if (data.message.toLowerCase() === "success") {
-            setUserName(data.name);
-            setUserId(data.id);
-            setUserAvatar(data.picture.data.url);
-          } else {
-            setUserName("Unknown");
-            setUserId("Unknown");
-          }
-
-          setZaloAccessToken("");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-        // Handle error appropriately
+        // Remove the access token in localStorage
+        localStorage.removeItem("zalo_access_token");
       }
-    };
+    }
+  }, []);
 
-    fetchData();
-  }, [zaloAccessToken]);
+  return (
+    <>
+      <div id="user_token"></div>
+      <div id="user_info" style={{ marginTop: "20px" }}></div>
+    </>
+  );
+};
 
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  ) {
-    return <h1>Please use a domain.</h1>;
-  } else {
-    return (
-      <>
-        {!isLogged ? (
-          <div>
-            <button
-              className="bg-blue-500 px-5 py-2 rounded-3xl"
-              onClick={() => {
-                window.location.href = "/login/zalo";
-              }}
-            >
-              Login with Zalo
-            </button>
-          </div>
-        ) : (
-          <table style={{ border: "none", borderTop: "1px solid black" }}>
-            <tr>
-              <td>id:</td>
-              <td>{userId}</td>
-            </tr>
-            <tr>
-              <td>name:</td>
-              <td>{userName}</td>
-            </tr>
-            <tr>
-              <td>picture:</td>
-              <td>
-                <img src={userAvatar} alt="avatar" width="120" height="120" />
-              </td>
-            </tr>
-          </table>
-        )}
-      </>
-    );
-  }
-}
+export default IndexPage;

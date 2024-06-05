@@ -1,71 +1,52 @@
-import { useAtom } from "jotai";
-import { zaloAccessTokenAtom, zaloAuthStateAtom, zaloCodeVerifierAtom } from '../../../store';
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useEffect } from 'react';
 
-export default function LoginPage() {
-    const navigate = useNavigate();
-    const [body, setBody] = useState('');
-    const [, setZaloAccessToken] = useAtom(zaloAccessTokenAtom);
-    const [zaloCodeVerifier, setZaloCodeVerifier] = useAtom(zaloCodeVerifierAtom);
-    const [zaloAuthState, setZaloAuthState] = useAtom(zaloAuthStateAtom);
-
+const LoginPage: React.FC = () => {
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const isValid = new URLSearchParams(window.location.search).has("state") &&
-                    zaloAuthState === new URLSearchParams(window.location.search).get("state");
+        // CSRF prevention
+        const searchParams = new URLSearchParams(window.location.search);
+        const isValid =
+            searchParams.has('state') &&
+            localStorage.getItem('zalo_auth_state') === searchParams.get('state');
 
-                if (isValid) {
-                    const code = new URLSearchParams(window.location.search).get("code") ?? '';
+        if (isValid) {
+            // Obtain the Access Token by performing a POST request to the Access Token URL
+            const data = new URLSearchParams({
+                app_id: import.meta.env.APP_ID || '', // Assuming you have environment variables setup
+                code: searchParams.get('code') || '',
+                code_verifier: localStorage.getItem('zalo_code_verifier') || '',
+                grant_type: 'authorization_code'
+            }).toString();
 
-                    const data = new URLSearchParams({
-                        app_id: import.meta.env.VITE_APP_ID,
-                        code,
-                        code_verifier: zaloCodeVerifier,
-                        grant_type: "authorization_code"
-                    }).toString();
-
-                    const response = await fetch(import.meta.env.VITE_ZALO_ACCESS_TOKEN_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: data
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch access token');
-                    }
-
-                    const auth = await response.json();
-
-                    setZaloAccessToken(JSON.stringify({
-                        access_token: auth.access_token,
-                        expires_in: auth.expires_in
-                    }));
-
-                    const expr = new Date(new Date().getTime() + (3 * 30 * 24 * 60 * 60 * 1000)); // 3 months?
-                    document.cookie = `zalo_refresh_token=${auth.refresh_token};expires=${expr.toUTCString()};path=/refresh;domain=${window.location.hostname};secure;HttpOnly`;
-
-                    setZaloCodeVerifier('');
-                    setZaloAuthState('');
-                    navigate('/');
-                } else {
-                    setBody('Bad Request');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                setBody('An error occurred. Please try again later.');
-            }
-        };
-
-        fetchData();
+            fetch(import.meta.env.ZALO_ACCESS_TOKEN_URL || '', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: data
+            })
+            .then(response => response.json())
+            .then(auth => {
+                // store the Access Token in localStorage
+                localStorage.setItem('zalo_access_token', JSON.stringify({
+                    access_token: auth.access_token,
+                    expires_in: auth.expires_in
+                }));
+                // store the Refresh Token in a secured HTTP only cookie
+                const expr = new Date(new Date().getTime() + (3 * 30 * 24 * 60 * 60 * 1000)); // 3 months?
+                document.cookie = `zalo_refresh_token=${auth.refresh_token};expires=${expr.toUTCString()};path=/refresh;domain=${window.location.hostname};secure;HttpOnly`;
+                // clean up the one-time-use state variables
+                localStorage.removeItem('zalo_auth_state');
+                localStorage.removeItem('zalo_code_verifier');
+                // Go back to index.html
+                window.location.replace('index.html');
+            });
+        } else {
+            // Otherwise response an error
+            document.body.innerHTML = 'Bad Request';
+        }
     }, []);
 
-    return (
-        <>
-            <p>{body}</p>
-        </>
-    );
-}
+    return <></>; // or any UI you want to show during the loading process
+};
+
+export default LoginPage;
