@@ -17,18 +17,20 @@ export default function HomePage() {
           const state = generate_state_param(); // for CSRF prevention
           // Generate the code verifier and code challenge
           const codes = generate_pkce_codes();
+          const code_challenge = codes.challenge
           // Get the current website URL
           let currentUrl = window.location.origin;
           // Remove any trailing slashes
           currentUrl = currentUrl.replace(/\/+$/, "");
           // Construct the redirect URI
           const redirect_uri = `${currentUrl}/login/zalo`;
+
           const auth_uri = `${
             import.meta.env.VITE_ZALO_PERMISSION_URL
           }?${new URLSearchParams({
             app_id: import.meta.env.VITE_APP_ID,
             redirect_uri: redirect_uri,
-            code_challenge: codes.challenge,
+          //  code_challenge: code_challenge,
             state: state, // <- prevent CSRF
           })}`;
           console.log("auth_uri: ", auth_uri);
