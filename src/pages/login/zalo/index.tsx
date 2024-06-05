@@ -11,13 +11,13 @@ const LoginPage: React.FC = () => {
         if (isValid) {
             // Obtain the Access Token by performing a POST request to the Access Token URL
             const data = new URLSearchParams({
-                app_id: import.meta.env.APP_ID || '', // Assuming you have environment variables setup
+                app_id: import.meta.env.VITE_APP_ID || '', // Assuming you have environment variables setup
                 code: searchParams.get('code') || '',
                 code_verifier: localStorage.getItem('zalo_code_verifier') || '',
                 grant_type: 'authorization_code'
             }).toString();
 
-            fetch(import.meta.env.ZALO_ACCESS_TOKEN_URL || '', {
+            fetch(import.meta.env.VITE_ZALO_ACCESS_TOKEN_URL || '', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'

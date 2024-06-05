@@ -27,9 +27,9 @@ const IndexPage: React.FC = () => {
         // Store the code verifier to be used in auth.html
         localStorage.setItem("zalo_code_verifier", codes.verifier);
         const authUri = `${
-          import.meta.env.ZALO_PERMISSION_URL
+          import.meta.env.VITE_ZALO_PERMISSION_URL
         }?${new URLSearchParams({
-          app_id: import.meta.env.APP_ID || "",
+          app_id: import.meta.env.VITE_APP_ID || "",
           redirect_uri: redirect_uri,
           code_challenge: codes.challenge,
           state: state, // <- prevent CSRF
