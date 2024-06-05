@@ -1,7 +1,7 @@
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { zaloAccessTokenAtom } from "../store";
-import { generate_pkce_codes, generate_state_param } from "../Utils/crypto";
+import {  generate_state_param } from "../Utils/crypto";//generate_pkce_codes
 
 export default function HomePage() {
   const [zaloAccessToken, setZaloAccessToken] = useAtom(zaloAccessTokenAtom);
