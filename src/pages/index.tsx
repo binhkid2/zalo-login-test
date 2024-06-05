@@ -17,9 +17,9 @@ export default function HomePage() {
                     const state = generate_state_param(); // for CSRF prevention
                     // Generate the code verifier and code challenge
                     const codes = generate_pkce_codes();
-                    const auth_uri = `${import.meta.env.ZALO_PERMISSION_URL}?${new URLSearchParams({
-                        app_id: import.meta.env.APP_ID,
-                        redirect_uri: import.meta.env.APP_REDIRECT_URI,
+                    const auth_uri = `${import.meta.env.VITE_ZALO_PERMISSION_URL}?${new URLSearchParams({
+                        app_id: import.meta.env.VITE_APP_ID,
+                        redirect_uri: import.meta.env.VITE_APP_REDIRECT_URI,
                         code_challenge: codes.challenge,
                         state: state, // <- prevent CSRF
                     })}`;
