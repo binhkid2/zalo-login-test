@@ -1,5 +1,3 @@
-///// Utility export functions /////
-
 export function openssl_random_pseudo_bytes(len: number): Uint8Array {
     return window.crypto.getRandomValues(new Uint8Array(len));
 }
@@ -9,7 +7,6 @@ export function bin2hex(array: Uint8Array): string {
 }
 
 export function generate_state_param(): string {
-    // a random 8 digit hex, for instance
     return bin2hex(openssl_random_pseudo_bytes(4));
 }
 
@@ -18,114 +15,31 @@ export interface PKCECodes {
     challenge: string;
 }
 
-export function generate_pkce_codes(): PKCECodes {
-    const random = bin2hex(openssl_random_pseudo_bytes(32)); // a random 64-digit hex
+export async function generate_pkce_codes(): Promise<PKCECodes> {
+    const random = bin2hex(openssl_random_pseudo_bytes(32));
     const code_verifier = base64_urlencode(hex2bin(random).toString());
-    const code_challenge = base64_urlencode(sha256bin(code_verifier).toString());
+    const code_challenge = base64_urlencode((await sha256(code_verifier)).toString());
     return {
         verifier: code_verifier,
         challenge: code_challenge
     };
 }
 
-
-///// More export functions /////
-
-const sha256 = function (ascii: string): string {
-    function rightRotate(value: number, amount: number): number {
-        return (value >>> amount) | (value << (32 - amount));
-    }
-
-    const mathPow = Math.pow;
-    const maxWord = mathPow(2, 32);
-    const lengthProperty = 'length';
-    let i, j; // Used as a counter across the whole file
-    let result = '';
-
-    const words: number[] = [];
-    const asciiBitLength = ascii[lengthProperty] * 8;
-
-    const hash: number[] = [];
-    const k: number[] = [];
-    let primeCounter = 0;
-
-    const isComposite: { [key: number]: number } = {};
-    for (let candidate = 2; primeCounter < 64; candidate++) {
-        if (!isComposite[candidate]) {
-            for (i = 0; i < 313; i += candidate) {
-                isComposite[i] = candidate;
-            }
-            hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
-            k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-        }
-    }
-
-    ascii += '\x80'; // Append '1' bit (plus zero padding)
-    while (ascii[lengthProperty] % 64 - 56) ascii += '\x00'; // More zero padding
-    for (i = 0; i < ascii[lengthProperty]; i++) {
-        j = ascii.charCodeAt(i);
-        if (j >> 8) return ''; // ASCII check: only accept characters in range 0-255
-        words[i >> 2] |= j << ((3 - i) % 4) * 8;
-    }
-    words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
-    words[words[lengthProperty]] = (asciiBitLength);
-
-    // process each chunk
-    for (j = 0; j < words[lengthProperty];) {
-        const w = words.slice(j, j += 16); // The message is expanded into 64 words as part of the iteration
-        const oldHash = [...hash];
-        // This is now the "working hash", often labelled as constiables a...g
-        // (we have to truncate as well, otherwise extra entries at the end accumulate
-        const truncatedHash = hash.slice(0, 8);
-
-        for (i = 0; i < 64; i++) {
-            const w15 = w[i - 15], w2 = w[i - 2];
-
-            const a = truncatedHash[0], e = truncatedHash[4];
-            const temp1 = truncatedHash[7]
-                + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) // S1
-                + ((e & truncatedHash[5]) ^ ((~e) & truncatedHash[6])) // ch
-                + k[i]
-                + (w[i] = (i < 16) ? w[i] : (
-                    w[i - 16]
-                    + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) // s0
-                    + w[i - 7]
-                    + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10)) // s1
-                ) | 0
-                );
-            const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) // S0
-                + ((a & truncatedHash[1]) ^ (a & truncatedHash[2]) ^ (truncatedHash[1] & truncatedHash[2])); // maj
-
-            truncatedHash.unshift((temp1 + temp2) | 0);
-            truncatedHash[4] = (truncatedHash[4] + temp1) | 0;
-        }
-
-        for (i = 0; i < 8; i++) {
-            truncatedHash[i] = (truncatedHash[i] + oldHash[i]) | 0;
-        }
-    }
-
-    for (i = 0; i < 8; i++) {
-        for (j = 3; j + 1; j--) {
-            const b = (hash[i] >> (j * 8)) & 255;
-            result += ((b < 16) ? '0' : '') + b.toString(16);
-        }
-    }
-    return result;
-};
+async function sha256(ascii: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(ascii);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    return bin2hex(new Uint8Array(hashBuffer));
+}
 
 export function hex2bin(s: string): Uint8Array {
     const ret: number[] = [];
-    let i = 0;
-    const l = s.length;
-
-    for (i = 0; i < l; i += 2) {
+    for (let i = 0; i < s.length; i += 2) {
         const c = parseInt(s.substr(i, 1), 16);
         const k = parseInt(s.substr(i + 1, 1), 16);
         if (isNaN(c) || isNaN(k)) return new Uint8Array(0);
         ret.push((c << 4) | k);
     }
-
     return new Uint8Array(ret);
 }
 
@@ -133,17 +47,12 @@ export function dec2hex(dec: number): string {
     return ('0' + dec.toString(16)).substr(-2);
 }
 
-// Array of integers to binary data
 export function dec2bin(arr: number[]): Uint8Array {
     return hex2bin(arr.map(dec2hex).join(''));
 }
 
-export function sha256bin(ascii: string): Uint8Array {
-    return hex2bin(sha256(ascii));
-}
-
 export function base64_urlencode(str: string): string {
-    return btoa(str)
+    return btoa(unescape(encodeURIComponent(str)))
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');

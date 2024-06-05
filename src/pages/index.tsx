@@ -16,7 +16,7 @@ export default function HomePage() {
                 if (!zaloAccessToken) {
                     const state = generate_state_param(); // for CSRF prevention
                     // Generate the code verifier and code challenge
-                    const codes = generate_pkce_codes();
+                    const codes =await generate_pkce_codes();
                     const auth_uri = `${import.meta.env.VITE_ZALO_PERMISSION_URL}?${new URLSearchParams({
                         app_id: import.meta.env.VITE_APP_ID,
                         redirect_uri: import.meta.env.VITE_APP_REDIRECT_URI,
