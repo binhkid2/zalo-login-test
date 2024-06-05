@@ -16,8 +16,8 @@ export default function HomePage() {
         if (!zaloAccessToken) {
           const state = generate_state_param(); // for CSRF prevention
           // Generate the code verifier and code challenge
-          const codes = generate_pkce_codes();
-          const code_challenge = codes.challenge
+        //  const codes = generate_pkce_codes();
+        //  const code_challenge = codes.challenge
           // Get the current website URL
           let currentUrl = window.location.origin;
           // Remove any trailing slashes
