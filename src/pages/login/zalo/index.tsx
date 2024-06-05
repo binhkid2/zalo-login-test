@@ -20,13 +20,13 @@ export default function LoginPage() {
                     const code = new URLSearchParams(window.location.search).get("code") ?? '';
 
                     const data = new URLSearchParams({
-                        app_id: import.meta.env.APP_ID,
+                        app_id: import.meta.env.VITE_APP_ID,
                         code,
                         code_verifier: zaloCodeVerifier,
                         grant_type: "authorization_code"
                     }).toString();
 
-                    const response = await fetch(import.meta.env.ZALO_ACCESS_TOKEN_URL, {
+                    const response = await fetch(import.meta.env.VITE_ZALO_ACCESS_TOKEN_URL, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded'
