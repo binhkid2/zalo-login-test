@@ -1,4 +1,4 @@
-import { generate_pkce_codes, generate_state_param } from "../Utils/zaloOauth";
+import { generatePKCECodes, generateStateParam } from "../Utils/zaloOauth";
 import { useAtom } from "jotai";
 import {
   zalo_code_verifierAtom,
@@ -14,33 +14,30 @@ export default function App() {
   const [zalo_access_token,setZalo_access_token]=useAtom(zalo_access_tokenAtom)
   const [isZaloAccessTokenExist, setIsZaloAccessTokenExist] = useState(false);
   const [userInfo, setUserInfo] = useAtom(userAtom);
-  
-  function loginWithZalo() {
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  async function loginWithZalo() {
     console.log("login now....");
-    const state = generate_state_param(); // for CSRF prevention
-    // Generate the code verifier and code challenge
-    const codes = generate_pkce_codes();
-    // Get the current website URL
+    const state = generateStateParam(); // for CSRF prevention
+    const codes = await generatePKCECodes();
     let currentUrl = window.location.origin;
-
-    // Remove any trailing slashes
     currentUrl = currentUrl.replace(/\/+$/, "");
-
-    // Construct the redirect URI
     const redirect_uri = `${currentUrl}/login/zalo`;
+
     setZalo_auth_state(state);
     setZalo_code_verifier(codes.verifier);
+
     const authUri = `${
       import.meta.env.VITE_ZALO_PERMISSION_URL
     }?${new URLSearchParams({
       app_id: import.meta.env.VITE_APP_ID,
       redirect_uri: redirect_uri,
-    //  code_challenge: codes.challenge,
-      state: state, // <- prevent CSRF
+      code_challenge: codes.challenge,
+      state: state,
     }).toString()}`;
+    
     window.location.replace(authUri);
   }
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTokensAndCheckAuth = async () => {
       setRefreshToken(getCookie("zalo_refresh_token"));
@@ -49,32 +46,38 @@ export default function App() {
 
     fetchTokensAndCheckAuth();
   }, []);
+
   const checkAuth = async () => {
     if (!zalo_access_token) {
       setIsZaloAccessTokenExist(false);
-      //TODO use RefreshToken to get zaloAccessToken
+      // TODO: Use refreshToken to get zaloAccessToken
       console.log(refreshToken);
     } else {
       setIsZaloAccessTokenExist(true);
       const userAccessToken = JSON.parse(zalo_access_token || "").access_token;
-      // get information of user
-      fetch("https://graph.zalo.me/v2.0/me?fields=id,name,picture", {
-        headers: {
-          access_token: userAccessToken,
-        },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.message.toLowerCase() === "success") {
-            setUserInfo({
-              name: data.name,
-              zaloId: data.id,
-              avatar: data.picture.data.url,
-            });
-            //Check if user stored in database or not .if not save it to  database
-          }
+      
+      try {
+        const response = await fetch("https://graph.zalo.me/v2.0/me?fields=id,name,picture", {
+          headers: {
+            access_token: userAccessToken,
+          },
         });
-        setZalo_access_token(null)
+
+        const data = await response.json();
+
+        if (data.message.toLowerCase() === "success") {
+          setUserInfo({
+            name: data.name,
+            zaloId: data.id,
+            avatar: data.picture.data.url,
+          });
+          // Check if user is stored in database or not, if not save it to the database
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+      
+      setZalo_access_token(null);
     }
   };
 
