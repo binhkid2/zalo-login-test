@@ -44,8 +44,8 @@ export default function LoginZaloPage() {
                  document.cookie = `zalo_refresh_token=${auth.refresh_token};expires=${exprZaloRefreshToken.toUTCString()};path=/refresh;domain=${window.location.hostname};secure;HttpOnly`;
                  // clean up the one-time-use state variables
 
-                 setZalo_code_verifier("");
-                 setZalo_auth_state("");
+                 setZalo_code_verifier(null);
+                 setZalo_auth_state(null);
                  //Authenticated. Go to page wou want
                  window.location.replace('/dashboard');
              });

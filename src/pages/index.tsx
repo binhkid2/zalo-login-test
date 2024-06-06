@@ -3,6 +3,7 @@ import { useAtom } from "jotai";
 import {
   zalo_code_verifierAtom,
   zalo_auth_stateAtom,
+  zalo_access_tokenAtom,
   userAtom,
 } from "../store";
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import { getCookie } from "../Utils/cookieUtils";
 export default function App() {
   const [, setZalo_auth_state] = useAtom(zalo_auth_stateAtom);
   const [, setZalo_code_verifier] = useAtom(zalo_code_verifierAtom);
+  const [zalo_access_token,setZalo_access_token]=useAtom(zalo_access_tokenAtom)
   const [isZaloAccessTokenExist, setIsZaloAccessTokenExist] = useState(false);
   const [userInfo, setUserInfo] = useAtom(userAtom);
   function loginWithZalo() {
@@ -38,24 +40,22 @@ export default function App() {
     window.location.replace(authUri);
   }
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   useEffect(() => {
     const fetchTokensAndCheckAuth = async () => {
       setRefreshToken(getCookie("zalo_refresh_token"));
-      setAccessToken(getCookie("zalo_access_token"));
       await checkAuth();
     };
 
     fetchTokensAndCheckAuth();
   }, []);
   const checkAuth = async () => {
-    if (!accessToken) {
+    if (!zalo_access_token) {
       setIsZaloAccessTokenExist(false);
       //TODO use RefreshToken to get zaloAccessToken
       console.log(refreshToken);
     } else {
       setIsZaloAccessTokenExist(true);
-      const userAccessToken = JSON.parse(accessToken || "").access_token;
+      const userAccessToken = JSON.parse(zalo_access_token || "").access_token;
       // get information of user
       fetch("https://graph.zalo.me/v2.0/me?fields=id,name,picture", {
         headers: {
@@ -73,6 +73,7 @@ export default function App() {
             //Check if user stored in database or not .if not save it to  database
           }
         });
+        setZalo_access_token(null)
     }
   };
 
