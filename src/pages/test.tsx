@@ -1,7 +1,11 @@
+import AuthCheck from "../components/AuthCheck";
+
 export default function Test() {
   return (
     <>
-      <h1>Test Page</h1>
+      <AuthCheck>
+  <p>This line only authenticated user can see</p>
+</AuthCheck>
     </>
   );
 }
