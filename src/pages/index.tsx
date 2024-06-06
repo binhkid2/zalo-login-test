@@ -1,90 +1,101 @@
-import React, { useEffect } from "react";
-import { generate_pkce_codes, generate_state_param } from "../Utils/crypto";
+import { generate_pkce_codes, generate_state_param } from "../Utils/zaloOauth";
+import { useAtom } from "jotai";
+import {
+  zalo_code_verifierAtom,
+  zalo_auth_stateAtom,
+  zalo_access_tokenAtom,
+  userAtom,
+} from "../store";
+import { useEffect, useState } from "react";
+import { getCookie } from "../Utils/cookieUtils";
+export default function App() {
+  const [, setZalo_auth_state] = useAtom(zalo_auth_stateAtom);
+  const [, setZalo_code_verifier] = useAtom(zalo_code_verifierAtom);
+  const [zalo_access_token,setZalo_access_token]=useAtom(zalo_access_tokenAtom)
+  const [isZaloAccessTokenExist, setIsZaloAccessTokenExist] = useState(false);
+  const [userInfo, setUserInfo] = useAtom(userAtom);
+  
+  function loginWithZalo() {
+    console.log("login now....");
+    const state = generate_state_param(); // for CSRF prevention
+    // Generate the code verifier and code challenge
+    const codes = generate_pkce_codes();
+    // Get the current website URL
+    let currentUrl = window.location.origin;
 
-const IndexPage: React.FC = () => {
+    // Remove any trailing slashes
+    currentUrl = currentUrl.replace(/\/+$/, "");
+
+    // Construct the redirect URI
+    const redirect_uri = `${currentUrl}/login/zalo`;
+    setZalo_auth_state(state);
+    setZalo_code_verifier(codes.verifier);
+    const authUri = `${
+      import.meta.env.VITE_ZALO_PERMISSION_URL
+    }?${new URLSearchParams({
+      app_id: import.meta.env.VITE_APP_ID,
+      redirect_uri: redirect_uri,
+    //  code_challenge: codes.challenge,
+      state: state, // <- prevent CSRF
+    }).toString()}`;
+    window.location.replace(authUri);
+  }
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
   useEffect(() => {
-    ///// Authentication Process /////
-    if (
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1"
-    ) {
-      document.body.innerHTML = "<h1>Please use a domain.</h1>";
-    } else {
-      if (!localStorage.getItem("zalo_access_token")) {
-        const state = generate_state_param(); // for CSRF prevention
-        // Generate the code verifier and code challenge
-        const codes = generate_pkce_codes();
-        // Get the current website URL
-        let currentUrl = window.location.origin;
+    const fetchTokensAndCheckAuth = async () => {
+      setRefreshToken(getCookie("zalo_refresh_token"));
+      await checkAuth();
+    };
 
-        // Remove any trailing slashes
-        currentUrl = currentUrl.replace(/\/+$/, "");
-
-        // Construct the redirect URI
-        const redirect_uri = `${currentUrl}/login/zalo`;
-        // Store the request state to be checked in auth.html
-        localStorage.setItem("zalo_auth_state", state);
-        // Store the code verifier to be used in auth.html
-        localStorage.setItem("zalo_code_verifier", codes.verifier);
-        const authUri = `${
-          import.meta.env.VITE_ZALO_PERMISSION_URL
-        }?${new URLSearchParams({
-          app_id: import.meta.env.VITE_APP_ID || "",
-          redirect_uri: redirect_uri,
-          code_challenge: codes.challenge,
-          state: state, // <- prevent CSRF
-        }).toString()}`;
-        window.location.replace(authUri);
-      } else {
-        // Store the INITIAL access token in a JavaScript constant.
-        const initialToken = localStorage.getItem("zalo_access_token");
-        alert(initialToken);
-        const userAccessToken = JSON.parse(initialToken || "").access_token;
-        document.getElementById("user_token")!.innerHTML =
-          "access_token = " + userAccessToken;
-
-        // Display information of user
-        fetch("https://graph.zalo.me/v2.0/me?fields=id,name,picture", {
-          headers: {
-            access_token: userAccessToken,
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            let userInfo = "";
-            if (data.message.toLowerCase() === "success") {
-              userInfo = `<table style="border:none;border-top:1px solid black;">
-                                        <tr>
-                                            <td>id:</td>
-                                            <td>${data.id}<td>
-                                        </tr>
-                                        <tr>
-                                            <td>name:</td>
-                                            <td>${data.name}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>picture:</td>
-                                            <td><img src="${data.picture.data.url}" alt="avatar" width="120" height="120"></td>
-                                        </tr>
-                                    </table>`;
-            } else {
-              userInfo = "Cannot get user info";
-            }
-            document.getElementById("user_info")!.innerHTML = userInfo;
-          });
-
-        // Remove the access token in localStorage
-        localStorage.removeItem("zalo_access_token");
-      }
-    }
+    fetchTokensAndCheckAuth();
   }, []);
+  const checkAuth = async () => {
+    if (!zalo_access_token) {
+      setIsZaloAccessTokenExist(false);
+      //TODO use RefreshToken to get zaloAccessToken
+      console.log(refreshToken);
+    } else {
+      setIsZaloAccessTokenExist(true);
+      const userAccessToken = JSON.parse(zalo_access_token || "").access_token;
+      // get information of user
+      fetch("https://graph.zalo.me/v2.0/me?fields=id,name,picture", {
+        headers: {
+          access_token: userAccessToken,
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.message.toLowerCase() === "success") {
+            setUserInfo({
+              name: data.name,
+              zaloId: data.id,
+              avatar: data.picture.data.url,
+            });
+            //Check if user stored in database or not .if not save it to  database
+          }
+        });
+        setZalo_access_token(null)
+    }
+  };
 
   return (
     <>
-      <div id="user_token"></div>
-      <div id="user_info" style={{ marginTop: "20px" }}></div>
+    {!isZaloAccessTokenExist ?(
+      <h1
+        onClick={() => {
+          loginWithZalo();
+        }}
+      >
+        Login with Zalo
+      </h1>
+    ):(
+        (<>
+        <p>UserId: {userInfo.zaloId}</p>
+        <p>UserName: {userInfo.name}</p>
+        <p>UserAvatar: </p>
+        <img src={userInfo.avatar} alt="user-avatar" className="w-20 h-20" />
+        </>)
+    )}
     </>
   );
-};
-
-export default IndexPage;
+}
