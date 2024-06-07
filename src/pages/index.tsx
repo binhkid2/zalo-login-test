@@ -1,6 +1,10 @@
 import React, { useEffect } from "react";
 import { generate_pkce_codes, generate_state_param } from "../Utils/zaloOauth";
 
+
+
+
+
 const IndexPage: React.FC = () => {
     useEffect(() => {
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
@@ -60,6 +64,7 @@ const IndexPage: React.FC = () => {
 
     return (
         <>
+        User info
             <div id="user_token"></div>
             <div id="user_info" style={{ marginTop: "20px" }}></div>
         </>
