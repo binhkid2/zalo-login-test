@@ -1,9 +1,11 @@
 import React, { useEffect } from "react";
-import { generate_pkce_codes, generate_state_param } from "../Utils/zaloOauth";
+import {  generate_state_param } from "../Utils/zaloOauth";
+import { atomWithStorage } from "jotai/utils";
+// Define interface for Zalo access token
 
-
-
-
+// Create atoms for zalo_auth_state and zalo_code_verifier
+const zaloAuthStateAtom = atomWithStorage('zalo_auth_state', generate_state_param());
+//const zaloCodeVerifierAtom = atomWithStorage('zalo_code_verifier', generate_pkce_codes().verifier);
 
 const IndexPage: React.FC = () => {
     useEffect(() => {
@@ -11,16 +13,14 @@ const IndexPage: React.FC = () => {
             document.body.innerHTML = '<h1>Please use a domain.</h1>';
         } else {
             if (!localStorage.getItem("zalo_access_token")) {
-                const state = generate_state_param(); // for CSRF prevention
-                const codes = generate_pkce_codes();
-                localStorage.setItem("zalo_auth_state", state);
-                localStorage.setItem("zalo_code_verifier", codes.verifier);
+                const state = zaloAuthStateAtom; // Retrieve zalo_auth_state from the atom
+              //  const verifier = zaloCodeVerifierAtom; // Retrieve zalo_code_verifier from the atom
                 const authUri = `https://oauth.zaloapp.com/v4/permission?${new URLSearchParams({
                     app_id: "4220696386833253137",
                     redirect_uri: "https://zalo-login-test.vercel.app/login/zalo",
                   //  code_challenge: codes.challenge,
                     state: state,
-                }).toString()}`;
+                }.toString())}`;
                 window.location.replace(authUri);
             } else {
                 const initialToken = localStorage.getItem("zalo_access_token");
