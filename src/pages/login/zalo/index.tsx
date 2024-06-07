@@ -4,18 +4,15 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 export default function LoginZaloPage() {
-   // const [zalo_code_verifier,setZalo_code_verifier]=useAtom(zalo_code_verifierAtom)
-  //  const [zalo_auth_state,setZalo_auth_state]=useAtom(zalo_auth_stateAtom)
- //   const [,setZalo_access_token]=useAtom(zalo_access_tokenAtom)
-    const [body,setBody]= useState('')
+    const [body, setBody] = useState('');
     const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const stateParam = queryParams.get('state');
+    const storedState = localStorage.getItem('zalo_auth_state');
+    
+    const isValid = stateParam && storedState === stateParam;
+
     useEffect(() => {
-        const queryParams = new URLSearchParams(location.search);
-        const stateParam = queryParams.get('state');
-        const storedState = localStorage.getItem('zalo_auth_state');
-        
-        const isValid = stateParam && storedState === stateParam;
-        
         if (isValid) {
             try {
                 // Obtain the Access Token by performing a POST request to the Access Token URL
@@ -25,7 +22,7 @@ export default function LoginZaloPage() {
                     code_verifier: localStorage.getItem("zalo_code_verifier") || '',
                     grant_type: 'authorization_code'
                 }).toString();
-    
+
                 fetch(import.meta.env.ZALO_ACCESS_TOKEN_URL, {
                     method: 'POST',
                     headers: {
@@ -46,15 +43,15 @@ export default function LoginZaloPage() {
                             access_token: auth.access_token,
                             expires_in: auth.expires_in
                         }));
-    
+
                         // Store the Refresh Token in a secured HTTP only cookie
                         const exprZaloRefreshToken = new Date(new Date().getTime() + (3 * 30 * 24 * 60 * 60 * 1000)); // 3 months
                         document.cookie = `zalo_refresh_token=${auth.refresh_token};expires=${exprZaloRefreshToken.toUTCString()};path=/refresh;domain=${window.location.hostname};secure;HttpOnly`;
-    
+
                         // Clean up the one-time-use state variables
                         localStorage.removeItem("zalo_auth_state");
                         localStorage.removeItem("zalo_code_verifier");
-    
+
                         // Authenticated. Redirect to the desired page
                         window.location.replace('/dashboard');
                     } else {
@@ -75,11 +72,11 @@ export default function LoginZaloPage() {
             // Respond with an error if state parameters are invalid
             setBody(`Bad Request. stateParam: ${stateParam}; zalo_auth_state: ${storedState}`);
         }
-    }, [location.search]);
-    
-  return (
-    <>
-      <h1>{body}</h1>
-    </>
-  );
+    }, [isValid, location.search]);
+
+    return (
+        <>
+            <h1>{body}</h1>
+        </>
+    );
 }
