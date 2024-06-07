@@ -1,60 +1,85 @@
-import { useAtom } from "jotai";
+//import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { zalo_code_verifierAtom,zalo_auth_stateAtom, zalo_access_tokenAtom } from "../../../store";
+//import { zalo_code_verifierAtom,zalo_auth_stateAtom, zalo_access_tokenAtom } from "../../../store";
+import { useLocation } from "react-router-dom";
 
 export default function LoginZaloPage() {
-    const [zalo_code_verifier,setZalo_code_verifier]=useAtom(zalo_code_verifierAtom)
-    const [zalo_auth_state,setZalo_auth_state]=useAtom(zalo_auth_stateAtom)
-    const [,setZalo_access_token]=useAtom(zalo_access_tokenAtom)
+   // const [zalo_code_verifier,setZalo_code_verifier]=useAtom(zalo_code_verifierAtom)
+  //  const [zalo_auth_state,setZalo_auth_state]=useAtom(zalo_auth_stateAtom)
+ //   const [,setZalo_access_token]=useAtom(zalo_access_tokenAtom)
     const [body,setBody]= useState('')
+    const location = useLocation();
     useEffect(() => {
-       // CSRF prevention
-       const searchParams = new URLSearchParams(window.location.search);
-       const isValid =
-           searchParams.has('state') &&
-           zalo_auth_state === searchParams.get('state');
+       // Extract the 'state' parameter from the query string
+    const queryParams = new URLSearchParams(location.search);
+    const stateParam = queryParams.get('state');
 
-         if (isValid) {
-             // Obtain the Access Token by performing a POST request to the Access Token URL
-             const data = new URLSearchParams({
-                app_id: import.meta.env.VITE_APP_ID || '', // Assuming you have environment variables setup
-                code: searchParams.get('code') || '',
-                code_verifier: zalo_code_verifier || '',
-                grant_type: 'authorization_code'
-            }).toString();
-            
- 
-             fetch(import.meta.env.ZALO_ACCESS_TOKEN_URL, {
-                 method: 'POST',
-                 headers: {
-                     'Content-Type': 'application/x-www-form-urlencoded'
-                 },
-                 body: data
-             }).then(response => response.json())
-             .then(auth => {
-                 // store the Access Token in localStorage
-                const zaloAccessToken =  JSON.stringify({
-                     access_token: auth.access_token,
-                     expires_in: auth.expires_in
-                 });
-                 setZalo_access_token(zaloAccessToken)
-                  // store the zaloAccessToken in a secured HTTP only cookie
-                //  const exprZaloAccessToken = new Date(new Date().getTime() + (1 * 60 * 60 * 1000)); //1 hour
-                //  document.cookie = `zalo_access_token=${zaloAccessToken};expires=${exprZaloAccessToken.toUTCString()};path=/refresh;domain=${window.location.hostname};secure;HttpOnly`;
-                 // store the Refresh Token in a secured HTTP only cookie
-                 const exprZaloRefreshToken = new Date(new Date().getTime() + (3 * 30 * 24 * 60 * 60 * 1000)); // 3 months?
-                 document.cookie = `zalo_refresh_token=${auth.refresh_token};expires=${exprZaloRefreshToken.toUTCString()};path=/refresh;domain=${window.location.hostname};secure;HttpOnly`;
-                 // clean up the one-time-use state variables
+    // Retrieve the stored state from localStorage
+    const storedState = localStorage.getItem('zalo_auth_state');
 
-                 setZalo_code_verifier(null);
-                 setZalo_auth_state(null);
-                 //Authenticated. Go to page wou want
-                 window.location.replace('/dashboard');
-             });
-         } else {
-             // Otherwise response an error
-             setBody('Bad Request')
-         }
+    // CSRF prevention
+    const isValid = stateParam && storedState === stateParam;
+
+    if (isValid) {
+      try {
+          // Obtain the Access Token by performing a POST request to the Access Token URL
+          const data = new URLSearchParams({
+              app_id: import.meta.env.VITE_APP_ID || '', // Assuming you have environment variables setup
+              code: queryParams.get('code') || '',
+              code_verifier: localStorage.getItem("zalo_code_verifier") || '',
+              grant_type: 'authorization_code'
+          }).toString();
+  
+          fetch(import.meta.env.ZALO_ACCESS_TOKEN_URL, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: data
+          })
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+              return response.json();
+          })
+          .then(auth => {
+              if (auth.access_token && auth.refresh_token) {
+                  // store the Access Token in localStorage
+                  localStorage.setItem("zalo_access_token", JSON.stringify({
+                      access_token: auth.access_token,
+                      expires_in: auth.expires_in
+                  }));
+  
+                  // store the Refresh Token in a secured HTTP only cookie
+                  const exprZaloRefreshToken = new Date(new Date().getTime() + (3 * 30 * 24 * 60 * 60 * 1000)); // 3 months
+                  document.cookie = `zalo_refresh_token=${auth.refresh_token};expires=${exprZaloRefreshToken.toUTCString()};path=/refresh;domain=${window.location.hostname};secure;HttpOnly`;
+  
+                  // clean up the one-time-use state variables
+                  localStorage.removeItem("zalo_auth_state");
+                  localStorage.removeItem("zalo_code_verifier");
+  
+                  // Authenticated. Redirect to the desired page
+                  window.location.replace('/dashboard');
+              } else {
+                  throw new Error('Invalid authentication response');
+              }
+          })
+          .catch(error => {
+              console.error('Error fetching the access token:', error);
+              setBody(`Error: ${error.message}`);
+          });
+      } catch (error) {
+          console.error('Unexpected error:', error);
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-ignore
+          setBody(`Unexpected error: ${error.message}`);
+      }
+  } else {
+      // Otherwise respond with an error
+      setBody(`Bad Request. stateParam: ${stateParam}; zalo_auth_state: ${storedState}`);
+  }
+  
       }, []);
   return (
     <>
