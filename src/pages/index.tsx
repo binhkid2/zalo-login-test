@@ -15,12 +15,9 @@ const IndexPage: React.FC = () => {
             if (!localStorage.getItem("zalo_access_token")) {
                 const state = zaloAuthStateAtom; // Retrieve zalo_auth_state from the atom
               //  const verifier = zaloCodeVerifierAtom; // Retrieve zalo_code_verifier from the atom
-                const authUri = `https://oauth.zaloapp.com/v4/permission?${new URLSearchParams({
-                    app_id: "4220696386833253137",
-                    redirect_uri: "https://zalo-login-test.vercel.app/login/zalo",
-                  //  code_challenge: codes.challenge,
-                    state: state,
-                }.toString())}`;
+             
+const authUri = `https://oauth.zaloapp.com/v4/permission?app_id=4220696386833253137&redirect_uri=https://zalo-login-test.vercel.app/login/zalo&state=${state}`
+            
                 window.location.replace(authUri);
             } else {
                 const initialToken = localStorage.getItem("zalo_access_token");

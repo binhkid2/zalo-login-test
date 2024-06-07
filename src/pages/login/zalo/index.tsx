@@ -9,12 +9,12 @@ function AuthPage() {
 
         if (isValid) {
             const code = queryParams.get("code") || ""; // Provide a default value if 'code' is null
-            const codeVerifier = localStorage.getItem("zalo_code_verifier") || "";
+           // const codeVerifier = localStorage.getItem("zalo_code_verifier") || "";
 
             const data = new URLSearchParams({
                 app_id: "4220696386833253137",
                 code,
-                code_verifier: codeVerifier,
+              //  code_verifier: codeVerifier,
                 grant_type: "authorization_code"
             }).toString();
 
