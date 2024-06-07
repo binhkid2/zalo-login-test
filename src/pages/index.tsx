@@ -11,17 +11,16 @@ export default function App() {
  // const [zalo_access_token,setZalo_access_token]=useAtom(zalo_access_tokenAtom)
   const [isZaloAccessTokenExist, setIsZaloAccessTokenExist] = useState(false);
   const [userInfo, setUserInfo] = useAtom(userAtom);
-  function loginWithZalo() {
+   function loginWithZalo() {
     console.log("login now....");
-    const state = generate_state_param(); // for CSRF prevention
-    // Generate the code verifier and code challenge
-    const codes = generate_pkce_codes();
     // Get the current website URL
    // let currentUrl = window.location.origin;
 
     // Remove any trailing slashes
    // currentUrl = currentUrl.replace(/\/+$/, "");
-
+   const state = generate_state_param(); // for CSRF prevention
+   // Generate the code verifier and code challenge
+   const codes =generate_pkce_codes();
     // Construct the redirect URI
   //  const redirect_uri = `${currentUrl}/login/zalo`;
    // setZalo_auth_state(state);
@@ -83,13 +82,14 @@ export default function App() {
   return (
     <>
     {!isZaloAccessTokenExist ?(
-      <h1
+      <button
+      className="bg-green-500 rounded-full px-5 "
         onClick={() => {
           loginWithZalo();
         }}
       >
         Login with Zalo
-      </h1>
+      </button>
     ):(
         (<>
         <p>UserId: {userInfo.zaloId}</p>
