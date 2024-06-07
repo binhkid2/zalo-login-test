@@ -14,7 +14,7 @@ const IndexPage: React.FC = () => {
                 const authUri = `https://oauth.zaloapp.com/v4/permission?${new URLSearchParams({
                     app_id: "4220696386833253137",
                     redirect_uri: "https://zalo-login-test.vercel.app/login/zalo",
-                    code_challenge: codes.challenge,
+                  //  code_challenge: codes.challenge,
                     state: state,
                 }).toString()}`;
                 window.location.replace(authUri);
