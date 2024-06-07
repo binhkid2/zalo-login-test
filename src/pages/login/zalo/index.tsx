@@ -13,7 +13,6 @@ export default function LoginZaloPage() {
    // const isValid = stateParam && storedState === stateParam;
 
     useEffect(() => {
-      //  if (isValid) {
             try {
                 // Obtain the Access Token by performing a POST request to the Access Token URL
                 const data = new URLSearchParams({
@@ -69,12 +68,7 @@ export default function LoginZaloPage() {
                 setBody(`Unexpected error: ${error.message}`);
             }
         } 
-        /*
-        else {
-            // Respond with an error if state parameters are invalid
-            setBody(`Bad Request. stateParam: ${stateParam}; zalo_auth_state: ${storedState}`);
-        }
-            */
+      
     , []);
 
     return (
