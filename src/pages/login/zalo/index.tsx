@@ -38,7 +38,7 @@ function AuthPage() {
                     localStorage.removeItem("zalo_auth_state");
                     localStorage.removeItem("zalo_code_verifier");
 
-                    window.location.replace("index.html");
+                    window.location.replace("/");
                 })
                 .catch(error => {
                     console.error("Error fetching the access token:", error);
