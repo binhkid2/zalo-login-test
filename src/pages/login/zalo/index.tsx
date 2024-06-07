@@ -51,6 +51,8 @@ export default function LoginZaloPage() {
         });
     } catch (error) {
         console.error('Unexpected error:', error);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
         setBody(`Unexpected error: ${error.message}`);
     }
 
